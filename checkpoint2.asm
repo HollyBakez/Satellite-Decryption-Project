@@ -16,39 +16,39 @@ _start:
 	mov rsi, text     ; points to stored read-text location
 	mov rdx, 180      ; 180 bytes to be read from the file
 	syscall
+	
+	
 ;---------calling decrypt subroutine--------
-	mov r9, 0 ; j =0
+  init:
+    mov r9, 0 ; j =0
 	mov r8, 0 ; i = 0
-	call decrypt
-
+  resetr9:
+	xor r9,r9
+  
   decrypt:                ;subroutine called decrypt
-	call loop
-	loop:
+	
 	cmp r8, 180			; i < 180
-	jnl functionexit; if equal, then jump to our exit function
-
+	jae functionexit; if equal, then jump to our exit function
+	
+	
+	
+	
 	mov r10b, byte[Key+r9] ; r9 is our j, move key value into r10b
-  xor byte[text+r8], r10b	 ; r8 is our i ; xor-ing  text 'i' index with r9 'j' index, stores result into byte text
+	xor byte[text+r8], r10b	 ; r8 is our i ; xor-ing  text 'i' index with r9 'j' index, stores result into byte text
 	inc  r9			; j++
 	inc  r8			; i++
-
 	cmp r9, 9  ; j > 9
-	jnl loop
+	jae resetr9
 
-	mov r9, 0 ; j = 0
-	jmp loop		; loop through again
+	jmp decrypt		; loop through again
 
+ functionexit:
 	syscall
-
-	functionexit:
-	mov rax, 60
-	xor rdi, rdi
-	syscall
-
+	ret
 
 section .data
     filename db "sat41x10.dat", 0 ; declares filename to be the satellite.dat file
-    Key:     db 0x36,0x13,0x92,0xa5,0x5a,0x27,0xf3,0x00,0x32 , 9 ; declare the key to be decrypt, 9 bytes long
+    Key:     db 	0x36, 0x13, 0x92, 0xa5, 0x5a, 0x27, 0xf3, 0x00, 0x32 ; declare the key to be decrypt, 9 bytes long
     SYS_OPEN  equ 2 ;constant declaration to open a file
     SYS_READ  equ 0 ;constant declaration to read a file
     SYS_CLOSE equ 3 ;constant declaration to close the file
