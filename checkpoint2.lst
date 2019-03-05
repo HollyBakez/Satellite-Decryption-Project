@@ -1,0 +1,88 @@
+     1                                  %include "satStruct.inc"
+     1                              <1> struc   satMessage                             
+     2 00000000 <res 00000004>      <1>   Id                         resb 4       ;  0 
+     3 00000004 <res 00000008>      <1>   NodeName                   resb 8       ;  4 
+     4 0000000C <res 00000004>      <1>   NodeNumber                 resd 1       ; 12 
+     5 00000010 <res 00000004>      <1>   tx_packet_nbr              resd 1       ; 16 
+     6 00000014 <res 00000004>      <1>   rx_packet_nbr              resd 1       ; 20 
+     7 00000018 <res 00000004>      <1>   track_object_nbr           resd 1       ; 24 
+     8 0000001C <res 00000004>      <1>   track_object_x_pos         resd 1       ; 28 
+     9 00000020 <res 00000004>      <1>   track_object_y_pos         resd 1       ; 32 
+    10 00000024 <res 00000004>      <1>   track_object_z_pos         resd 1       ; 36 
+    11 00000028 <res 00000004>      <1>   track_object_velocity      resd 1       ; 40 
+    12 0000002C <res 00000004>      <1>   status_code                resd 1       ; 44 
+    13 00000030 <res 00000001>      <1>   msg_length                 resb 1       ; 48 
+    14 00000031 <res 00000080>      <1>   status_msg                 resb 128     ; 49 
+    15                              <1> endstruc                                       
+     2                                  global _start
+     3                                  section .text
+     4                                  _start:
+     5                                  ;-------Opens the file----------
+     6 00000000 B802000000              	mov rax, SYS_OPEN ; moves the open file command into the rax register
+     7 00000005 48BF-                   	mov rdi, filename ; moves our filename containing our sat data into rdi
+     7 00000007 [0000000000000000] 
+     8 0000000F BE00000000              	mov rsi, O_RDONLY ; sets the file to read only
+     9 00000014 BA00000000              	mov rdx, 0        ; moving a null into rdx
+    10 00000019 0F05                    	syscall           ; call the system to do an exit
+    11                                  
+    12                                  ;--------Reads the file---------
+    13                                  
+    14 0000001B 50                      	push rax          ; pushes rax open file command into the stack
+    15 0000001C 4889C7                  	mov rdi, rax      ; moves rax into rdi, open file command passes to the filename var
+    16 0000001F B800000000              	mov rax, SYS_READ ; moves the read-file command into the rax where the file is
+    17 00000024 48BE-                   	mov rsi, text     ; points to stored read-text location
+    17 00000026 [0000000000000000] 
+    18 0000002E BAB4000000              	mov rdx, 180      ; 180 bytes to be read from the file
+    19 00000033 0F05                    	syscall
+    20                                  
+    21                                  
+    22                                  ;---------calling decrypt subroutine--------
+    23                                    init:
+    24 00000035 41B900000000              mov r9, 0 ; j =0
+    25 0000003B 41B800000000            	mov r8, 0 ; i = 0
+    26                                    resetr9:
+    27 00000041 4D31C9                  	xor r9,r9
+    28                                  
+    29                                    decrypt:                ;subroutine called decrypt
+    30                                  
+    31 00000044 4981F8B4000000          	cmp r8, 180			; i < 180
+    32 0000004B 731C                    	jae functionexit; if equal, then jump to our exit function
+    33                                  
+    34 0000004D 458A91[0D000000]        	mov r10b, byte[Key+r9] ; r9 is our j, move key value into r10b
+    35 00000054 453090[00000000]        	xor byte[text+r8], r10b	 ; r8 is our i
+    36 0000005B 49FFC1                  	inc  r9			; j++
+    37 0000005E 49FFC0                  	inc  r8			; i++
+    38 00000061 4983F909                	cmp r9, 9  ; j > 9
+    39 00000065 73DA                    	jae resetr9
+    40                                  
+    41 00000067 EBDB                    	jmp decrypt		; loop through again
+    42                                  
+    43                                   functionexit:
+    44 00000069 0F05                    	syscall
+    45 0000006B C3                      	ret
+    46                                  
+    47 0000006C B801000000              	mov     rax, 1          ; System call for write
+    48 00000071 BF01000000              	mov     rdi, 1          ; File handle 1 is stdout
+    49                                  
+    50 00000076 BA00000000              	mov rdx, 0
+    51 0000007B 8A142530000000          	mov dl, byte[msg_length]
+    52                                  
+    53 00000082 488D3425[31000000]      	lea rsi,[text+status_msg]
+    54 0000008A 0F05                    	syscall                 ; invoke operating system to do the write
+    55 0000008C B83C000000              	mov     rax, 60         ; System call for exit
+    56 00000091 4831FF                  	xor     rdi, rdi        ; exit code 0
+    57 00000094 0F05                    	syscall                 ; Invoke operating system to do the exit
+    58                                  
+    59                                  
+    60                                  
+    61                                  section .data
+    62 00000000 73617434317831302E-         filename db "sat41x10.dat", 0 ; declares filename to be the satellite.dat file
+    62 00000009 64617400           
+    63 0000000D 361392A55A27F30032          Key:     db 	0x36, 0x13, 0x92, 0xa5, 0x5a, 0x27, 0xf3, 0x00, 0x32 ; declare the key to be decrypt, 9 bytes long
+    64                                      SYS_OPEN  equ 2 ;constant declaration to open a file
+    65                                      SYS_READ  equ 0 ;constant declaration to read a file
+    66                                      SYS_CLOSE equ 3 ;constant declaration to close the file
+    67                                      O_RDONLY  equ 0 ;constant declartion to set a file to be "read-only"
+    68                                  
+    69                                  section .bss
+    70 00000000 <res 000000B4>          	text resb 180  ; reserve 180 bytes for the text to be read

@@ -1,3 +1,4 @@
+%include "satStruct.inc"
 global _start
 section .text
 _start:
@@ -16,25 +17,22 @@ _start:
 	mov rsi, text     ; points to stored read-text location
 	mov rdx, 180      ; 180 bytes to be read from the file
 	syscall
-	
-	
+
+
 ;---------calling decrypt subroutine--------
   init:
-    mov r9, 0 ; j =0
+  mov r9, 0 ; j =0
 	mov r8, 0 ; i = 0
   resetr9:
 	xor r9,r9
-  
+
   decrypt:                ;subroutine called decrypt
-	
+
 	cmp r8, 180			; i < 180
 	jae functionexit; if equal, then jump to our exit function
-	
-	
-	
-	
+
 	mov r10b, byte[Key+r9] ; r9 is our j, move key value into r10b
-	xor byte[text+r8], r10b	 ; r8 is our i ; xor-ing  text 'i' index with r9 'j' index, stores result into byte text
+	xor byte[text+r8], r10b	 ; r8 is our i
 	inc  r9			; j++
 	inc  r8			; i++
 	cmp r9, 9  ; j > 9
@@ -43,8 +41,22 @@ _start:
 	jmp decrypt		; loop through again
 
  functionexit:
-	syscall
-	ret
+	;syscall
+	;ret
+
+	mov     rax, 1          ; System call for write
+	mov     rdi, 1          ; File handle 1 is stdout
+
+	mov rdx, 0
+	mov dl, byte[text+msg_length]
+
+	lea rsi,[text+status_msg]
+	syscall                 ; invoke operating system to do the write
+	mov     rax, 60         ; System call for exit
+	xor     rdi, rdi        ; exit code 0
+	syscall                 ; Invoke operating system to do the exit
+
+
 
 section .data
     filename db "sat41x10.dat", 0 ; declares filename to be the satellite.dat file
