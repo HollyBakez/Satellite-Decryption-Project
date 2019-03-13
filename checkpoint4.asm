@@ -51,16 +51,13 @@ _start:
 	lea rsi,[text+status_msg]
 	syscall                 ; invoke operating system to do the write
 
-	; Convert dword endian...
-	; eax has value to convert
-	; Will return converted value in eax
-  call printLF
+        call printLF
 ;Print a nice name for this field
 	mov rsi, track_obj
 	mov rdx, 17
 	mov     rax, 1          ; System call for write
 	mov     rdi, 1          ; File handle 1 is stdout
-  syscall
+        syscall
 
 
 ;Now, convert a field's endianness
@@ -69,12 +66,12 @@ _start:
 	call cvtEndian
 ;Print what is in eax
 
- getdword:
+ getdword: ;gets the tracking number value
 	cmp eax, 0
 	jz printDword
 
-  cdq
-	div dword[ten] ; divide num/10
+        cdq
+	idiv dword[ten] ; divide num/10
 	mov dword[num], eax ; num = num/10
 
 	mov dword[rem], edx
@@ -84,47 +81,51 @@ _start:
 
 	mov byte[string+r12], dl
 	inc r12
-
+  
   jmp getdword
-
+   
  printDword:
- mov     rax, 1          ; System call for write
- mov     rdi, 1          ; File handle 1 is stdout
- mov 		 rsi, string
- mov     rdx, 4
- syscall
- call printLF
-
- exit:
-	mov     rax, 60         ; System call for exit
-	xor     rdi, rdi        ; exit code 0
-	syscall                 ; Invoke operating system to do the exit
-
- printLF:
   mov     rax, 1          ; System call for write
   mov     rdi, 1          ; File handle 1 is stdout
-  mov 		rsi, var
+  mov 	  rsi, string
+  mov     rdx, 4
+  syscall
+  call printLF
+
+ exit:
+  mov     rax, 60         ; System call for exit
+  xor     rdi, rdi        ; exit code 0
+  syscall                 ; Invoke operating system to do the exit
+  
+ printLF:		  ; subroutine to call line feed
+  mov     rax, 1          ; System call for write
+  mov     rdi, 1          ; File handle 1 is stdout
+  mov 	  rsi, var
   mov     rdx, 1
   syscall
-	ret
+  ret
 
-	cvtEndian:
-         push    rbx
+; Convert dword endian...
+; eax has value to convert
+; Will return converted value in eax
+ cvtEndian:
+  push    rbx
  ;                            start with ; eax = 4 3 2 1
-         rol     eax, 8                  ; eax = 3 2 1 4
-         mov     ebx, eax
-         and     eax, 0x00ff00ff         ; eax = - 2 - 4
-         and     ebx, 0xff00ff00         ; ebx = 3 - 1 -
-         ror     ebx, 16                 ; ebx = 1 - 3 -
-         or      eax, ebx                ; eax = 1 2 3 4
-         pop     rbx
-				 ret
+  rol     eax, 8                  ; eax = 3 2 1 4
+  mov     ebx, eax
+  and     eax, 0x00ff00ff         ; eax = - 2 - 4
+  and     ebx, 0xff00ff00         ; ebx = 3 - 1 -
+  ror     ebx, 16                 ; ebx = 1 - 3 -
+  or      eax, ebx                ; eax = 1 2 3 4
+  pop     rbx
+  ret
+
 section .data
-    ten dd 10
-    rem db 0
-    num db 0
-		var db 10
-    track_obj db "track_object_nbr "
+    ten: dd 10
+    rem: db 0
+    num: db 0
+    var: db 10
+    track_obj: db "track_object_nbr "
     filename db "sat41x10.dat", 0 ; declares filename to be the satellite.dat file
     Key:     db 	0x36, 0x13, 0x92, 0xa5, 0x5a, 0x27, 0xf3, 0x00, 0x32 ; declare the key to be decrypt, 9 bytes long
     SYS_OPEN  equ 2 ;constant declaration to open a file
